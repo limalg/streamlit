@@ -10,3 +10,4 @@ streamlit-lottie==0.0.5
 streamlit-option-menu==0.3.6
 streamlit-webrtc==0.45.1
 matplotlib==3.7.1
+lxml==5.1.0
