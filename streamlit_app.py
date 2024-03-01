@@ -1,76 +1,66 @@
-import streamlit as st
-from requests_html import AsyncHTMLSession
+import requests
+from bs4 import BeautifulSoup
 import pandas as pd
-import asyncio
+import streamlit as st
+import matplotlib.pyplot as plt
 
-async def buscar_informacoes_ativo_acao(ticker):
-    session = AsyncHTMLSession()
-    url = f'https://www.fundamentus.com.br/detalhes.php?papel={ticker}'
-    response = await session.get(url)
-    await response.html.arender()  # Renderiza a página para garantir que todo o conteúdo seja carregado
-    
-    informacoes = {}
-    html_text = response.html.text
-    
-    informacoes['Papel'] = ticker
-    informacoes['Cotação'] = html_text[html_text.find('?Cotação') + len('?Cotação'):].split()[0]
-    informacoes['P/VP'] = html_text[html_text.find('?P/VP') + len('?P/VP'):].split()[0]
-    informacoes['LPA'] = html_text[html_text.find('?LPA') + len('?LPA'):].split()[0]
-    informacoes['ROE'] = html_text[html_text.find('?ROE') + len('?ROE'):].split()[0]
-    informacoes['Dividend Yield'] = html_text[html_text.find('?Div. Yield') + len('?Div. Yield'):].split()[0]
-    informacoes['Setor'] = html_text[html_text.find('?Subsetor') + len('?Subsetor'):].split()[0]
-    
-    return informacoes
+# URL desejada
+url = 'https://www.fundamentus.com.br/resultado.php'
 
-async def buscar_informacoes_ativo_fii(ticker):
-    session = AsyncHTMLSession()
-    url = f'https://www.fundamentus.com.br/detalhes.php?papel={ticker}'
-    response = await session.get(url)
-    await response.html.arender()  # Renderiza a página para garantir que todo o conteúdo seja carregado
-    
-    informacoes = {}
-    html_text = response.html.text
-    
-    informacoes['Papel'] = ticker
-    informacoes['Cotação'] = html_text[html_text.find('?Cotação') + len('?Cotação'):].split()[0]
-    informacoes['P/VP'] = html_text[html_text.find('?P/VP') + len('?P/VP'):].split()[0]
-    informacoes['LPA'] = html_text[html_text.find('?LPA') + len('?LPA'):].split()[0]
-    informacoes['ROE'] = html_text[html_text.find('?ROE') + len('?ROE'):].split()[0]
-    informacoes['Dividend Yield'] = html_text[html_text.find('?Div. Yield') + len('?Div. Yield'):].split()[0]
-    informacoes['Setor'] = html_text[html_text.find('?Segmento') + len('?Segmento'):].split()[0]
-    
-    return informacoes    
+# Definindo cabeçalhos
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+}
 
-# Função principal do Streamlit
-def main():
-    st.title('Informações de Ações e FIIs Brasileiros')
+# Fazendo a solicitação GET com cabeçalhos
+response = requests.get(url, headers=headers)
 
-    # Lista de ações brasileiras
-    acoes_brasileiras = ['GOAU4', 'ITUB4', 'KLBN3', 'VAMO3', 'TAEE11']
+# Verificando se a solicitação foi bem-sucedida
+if response.status_code == 200:
+    html_text = response.text
+    # Parse do HTML
+    soup = BeautifulSoup(html_text, 'html.parser')
 
-    # Lista de FIIs brasileiros
-    fiis_brasileiros = ['XPML11', 'RBRF11', 'MXRF11', 'VGHF11', 'JPPA11']
+    # Extrair os dados da tabela
+    data = []
+    for row in soup.select('#resultado tbody tr'):
+        row_data = [cell.get_text(strip=True) for cell in row.find_all('td')]
+        data.append(row_data)
 
-    # Lista para armazenar as informações de cada ação
-    lista_informacoes = []
+    # Criar o DataFrame
+    df = pd.DataFrame(data, columns=[
+        'Papel', 'Cotação', 'P/L', 'P/VP', 'PSR', 'Div.Yield', 'P/Ativo', 'P/Cap.Giro', 
+        'P/EBIT', 'P/Ativ Circ.Liq', 'EV/EBIT', 'EV/EBITDA', 'Mrg Ebit', 'Mrg. Líq.', 
+        'Liq. Corr.', 'ROIC', 'ROE', 'Liq.2meses', 'Patrim. Líq', 'Dív.Brut/ Patrim.', 'Cresc. Rec.5a'
+    ])
+    # Criar o título
+    st.title('Detalhes sobre ações')
+    # Vamos criar uma lista com todos os papeis disponíveis
+    papeis_disponiveis = sorted(df['Papel'].unique())
+    # Criar um multiselect no Streamlit
+    papeis_selecionados = st.multiselect('Selecione os papeis:', papeis_disponiveis)
 
-    # Buscar informações para ações brasileiras
-    for ticker_acao in acoes_brasileiras:
-        informacoes_acao = asyncio.run(buscar_informacoes_ativo_acao(ticker_acao))
-        if informacoes_acao:
-            lista_informacoes.append(informacoes_acao)
+    # Filtrar o DataFrame com base nos papeis selecionados
+    df_filtrado = df[df['Papel'].isin(papeis_selecionados)]
+    # Exibir o DataFrame filtrado
+    st.write('DataFrame filtrado:', df_filtrado)
 
-    # Buscar informações para FIIs brasileiros
-    for ticker_fii in fiis_brasileiros:
-        informacoes_fii = asyncio.run(buscar_informacoes_ativo_fii(ticker_fii))
-        if informacoes_fii:
-            lista_informacoes.append(informacoes_fii)        
+    # Criar um gráfico com os dados do DataFrame filtrado
+    plt.figure(figsize=(10, 6))
+    for papel in papeis_selecionados:
+        dados_papel = df_filtrado[df_filtrado['Papel'] == papel]
+        plt.plot(dados_papel['Papel'], dados_papel['Div.Yield'], marker='o', label=papel)
 
-    # Criar DataFrame a partir da lista
-    df_resultado = pd.DataFrame(lista_informacoes)
+    plt.xlabel('Papel')
+    plt.ylabel('Div. Yield')
+    plt.title('Dividend Yield por Papel')
+    plt.xticks(rotation=45)
+    plt.legend()
+    st.pyplot(plt)
 
-    # Exibir DataFrame resultante
-    st.write(df_resultado)
+else:
+    st.error(f'Erro ao fazer a solicitação. Código de status: {response.status_code}')
+
 
 if __name__ == '__main__':
     main()
