@@ -1,7 +1,6 @@
 import requests
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
 
 # URL desejada
 url = 'https://www.fundamentus.com.br/resultado.php'
@@ -34,18 +33,9 @@ if response.status_code == 200:
     # Exibir o DataFrame filtrado
     st.write('DataFrame filtrado:', df_filtrado)
 
-    # Criar um gráfico com os dados do DataFrame filtrado
-    plt.figure(figsize=(10, 6))
-    for papel in papeis_selecionados:
-        dados_papel = df_filtrado[df_filtrado['Papel'] == papel]
-        plt.plot(dados_papel['Papel'], dados_papel['Div.Yield'], marker='o', label=papel)
-
-    plt.xlabel('Papel')
-    plt.ylabel('Div. Yield')
-    plt.title('Dividend Yield por Papel')
-    plt.xticks(rotation=45)
-    plt.legend()
-    st.pyplot(plt)
+    # Criar um gráfico de barras com os dados do DataFrame filtrado usando o próprio Streamlit
+    #st.bar_chart(df_filtrado.set_index('Papel')['Div.Yield'])
+    st.bar_chart(df_filtrado)
 
 else:
     st.error(f'Erro ao fazer a solicitação. Código de status: {response.status_code}')
