@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -17,31 +16,21 @@ response = requests.get(url, headers=headers)
 
 # Verificando se a solicitação foi bem-sucedida
 if response.status_code == 200:
-    html_text = response.text
-    # Parse do HTML
-    soup = BeautifulSoup(html_text, 'html.parser')
+    # Ler diretamente o HTML usando o Pandas
+    df = pd.read_html(response.text)[0]
 
-    # Extrair os dados da tabela
-    data = []
-    for row in soup.select('#resultado tbody tr'):
-        row_data = [cell.get_text(strip=True) for cell in row.find_all('td')]
-        data.append(row_data)
-
-    # Criar o DataFrame
-    df = pd.DataFrame(data, columns=[
-        'Papel', 'Cotação', 'P/L', 'P/VP', 'PSR', 'Div.Yield', 'P/Ativo', 'P/Cap.Giro', 
-        'P/EBIT', 'P/Ativ Circ.Liq', 'EV/EBIT', 'EV/EBITDA', 'Mrg Ebit', 'Mrg. Líq.', 
-        'Liq. Corr.', 'ROIC', 'ROE', 'Liq.2meses', 'Patrim. Líq', 'Dív.Brut/ Patrim.', 'Cresc. Rec.5a'
-    ])
     # Criar o título
     st.title('Detalhes sobre ações')
+
     # Vamos criar uma lista com todos os papeis disponíveis
     papeis_disponiveis = sorted(df['Papel'].unique())
+
     # Criar um multiselect no Streamlit
     papeis_selecionados = st.multiselect('Selecione os papeis:', papeis_disponiveis)
 
     # Filtrar o DataFrame com base nos papeis selecionados
     df_filtrado = df[df['Papel'].isin(papeis_selecionados)]
+
     # Exibir o DataFrame filtrado
     st.write('DataFrame filtrado:', df_filtrado)
 
@@ -60,7 +49,6 @@ if response.status_code == 200:
 
 else:
     st.error(f'Erro ao fazer a solicitação. Código de status: {response.status_code}')
-
 
 if __name__ == '__main__':
     main()
