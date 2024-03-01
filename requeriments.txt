@@ -1,5 +1,5 @@
+lxml
 pandas
 requests
 streamlit
-lxml
 numpy
