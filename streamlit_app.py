@@ -148,6 +148,7 @@ def main():
     
     st.header('Detalhes sobre Ações e Fiis com Analise em Dividendos:', divider='rainbow')
     col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
 
     with col1:
         # Criar o título
@@ -171,9 +172,10 @@ def main():
     df_fiis = aplica_filtros_dividendos_fiis(ffo_yield,p_vp1[0],p_vp1[1],div_yield[0],div_yield[1],liquidez)
     df_acao_fiss = pd.concat([df_acao, df_fiis], ignore_index=True).sort_values(by='Div.Yield', ascending=False)
     df_acao_fiss = df_acao_fiss.reset_index(drop=True)
-    fig = px.bar(df_acao_fiss,x='Papel', y='Div.Yield',color='Setor')
-    st.write(fig)
-    
+    fig = px.bar(df_acao_fiss,y='Papel', x='Div.Yield',color='Setor',title='Papel por Div. Yield')
+    col3.plotly_chart(fig,use_container_width=True,)
+    #st.write(fig )
+  
     
 if __name__ == "__main__":
     main()
