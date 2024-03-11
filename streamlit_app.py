@@ -39,7 +39,6 @@ def aplica_filtros_dividendos_acoes(pl_range, pvp_range, div_yield_range, margem
             (df['Liq.2meses'] >= liq_min) & 
             (df['Dív.Brut/ Patrim.'] <= div_brut_patrim_max)]
     df['Setor'] = df['Papel'].apply(retorno_setor)
-    df = df[['Papel', 'Cotação', 'Div.Yield','Setor']].sort_values(by='Div.Yield', ascending=False).reset_index(drop=True)
     return df
 
 
@@ -53,7 +52,6 @@ def aplica_filtros_dividendos_fiis(ffo_yield, p_vp1, p_vp2, div_yield1, div_yiel
             (df['P/VP'].between(p_vp1, p_vp2)) & 
             (df['Div.Yield'].between(div_yield1, div_yield2)) & 
             (df['Liquidez'] >= liquidez)]
-    df = df[['Papel', 'Cotação', 'Div.Yield','Setor']].sort_values(by='Div.Yield', ascending=False).reset_index(drop=True)
     return df
 
 def retorno_setor(papel):
@@ -70,7 +68,8 @@ def retorno_setor(papel):
         return 'S/Setor'
 
 def main():
-    st.sidebar.header('Detalhes sobre Ações e FIIs com Análise em Dividendos:', divider='rainbow')
+    st.sidebar.header('Filtros para Ações e FIIs:', divider='rainbow')
+    st.header('Oportunidades com foco em Dividendos:', divider='rainbow')
     # Sliders para ações
     with st.sidebar.expander("Regras para aplicar em Ações:"):
         pl_range = st.slider('Faixa de P/L', 0.0, 20.0, (1.0, 9.0))
@@ -92,11 +91,13 @@ def main():
     with col1:
         st.subheader('Ranking Ações')
         df = aplica_filtros_dividendos_acoes(pl_range, pvp_range, div_yield_range, margem_liq_min, liq_min, div_brut_patrim_max)
+        df = df[['Papel', 'Cotação', 'Div.Yield','Setor']].sort_values(by='Div.Yield', ascending=False).reset_index(drop=True)
         st.write(df)
 
     with col2:
         st.subheader('Ranking FIIs')
         df = aplica_filtros_dividendos_fiis(ffo_yield, p_vp1, p_vp2, div_yield1, div_yield2, liquidez)
+        df = df[['Papel', 'Cotação', 'Div.Yield','Setor']].sort_values(by='Div.Yield', ascending=False).reset_index(drop=True)
         st.write(df)
 
     df_acao = aplica_filtros_dividendos_acoes(pl_range, pvp_range, div_yield_range, margem_liq_min, liq_min, div_brut_patrim_max)
@@ -110,6 +111,9 @@ def main():
     with col4:
         fig_yield = px.pie(df_acao_fiis, values='Div.Yield', names='Setor', color='Setor', title='Setor por Div. Yield')
         col4.plotly_chart(fig_yield, use_container_width=True)  
+
+    st.write('Detalhes gerais:')
+    st.write(df_acao_fiis)
     
 if __name__ == "__main__":
     main()
